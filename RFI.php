@@ -1,4 +1,4 @@
 <?php
-$test= file_get_content('index.php');
+$test= file_get_contents('index.php');
 echo $test;
 ?>
